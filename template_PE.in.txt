@@ -1,0 +1,132 @@
+InputFileVersion = 3
+
+# Specify everything about the models in the simulation
+#    Hamiltonian type, constituents, interactions, simulation cell, operators, initializations, ...
+models {
+  # Specify the number of models/cells in the simulation
+  NumModels = 2
+
+  # Setting independent of simulation box - model type, monomer specifications, polymer chain specifications
+  # All models coexisting in a simulation have the same Hamiltonian and the same chemical constituents.
+  # Composition parameters, interaction strengths, cell shape/volume, and seeds/initializations can be different
+  ModelType = POLYEIMPLSOLVENT
+
+  monomers{
+    nSpecies = 4
+    KuhnLen  = 1 1 1 1
+    Charge   = -1 1 -1 1
+  }
+
+  chains{
+    nChains = 1
+
+    ContourDS = 0.01
+    DiffuserMethod = SOS
+
+    chain1{
+      Label=AC
+      Architecture=linear
+      Length = 1.0
+      nBlocks= 2
+      Statistics=gaussian
+      BlockSpecies=1 2
+      BlockFractions=0.45
+    }
+  }
+
+  smallmolecules{
+    PolymerReferenceN = 100
+
+    nSmallMoleculeTypes = 2
+
+    smallmolecule1 {
+      Species = 3 # Anion
+    }
+    smallmolecule2 {
+      Species = 4 # Cation
+    }
+  }
+
+  common {
+    cell {
+      Dim         = 3
+      CellLengths = 1 1 1
+      CellScaling = 4.8
+      CellAngles  = 90. 90. 90.
+      NPW         = 24 24 24
+    }
+
+    interactions {
+      BExclVolume   = 1.0
+      EElecStatic   = 2000
+      CChainDensity = 1.0
+      SmearScale = 0.2
+    }
+
+    composition {
+     ensemble = canonical
+    }
+
+    operators {
+      CalcHamiltonian       = true
+      CalcChemicalPotential = true
+      CalcPressure          = true
+      IncludeIdealGasTerms  = true
+    }
+
+  } # end common
+
+  model1 {
+    interactions {
+      CChainDensity = __CTOT__
+    }
+
+    composition {
+      chainvolfrac = __Phi1__
+      smallmoleculevolfrac = __Phi2__ __Phi3__
+    }
+
+    initfields{
+      ReadInputFields= __READFIELDS__ # SpeciesFields, HFields, or NO
+      InputFieldsFile= fields.bin
+    }
+  } # end model 1
+
+} # end models
+
+
+
+simulation{
+  jobtype = CL
+
+  FieldUpdater = ETD
+
+  NumTimeStepsPerBlock = 50  # This sets the operator/field output interval
+  NumBlocks = 200
+
+  TimeStepDT = 0.2
+
+  randomseed = 0 # =0 => autoset from clock
+
+  CLBlockAverageOperators = true
+
+  VariableCell = false
+  VarCellConserve = mass # mass (=> fixed n) or concentration (=> fixed C)
+
+  IO{
+    KeepDensityHistory = false
+    KeepFieldHistory = false
+
+    OutputFields = HFields
+    FieldOutputSpace = rspace # rspace, kspace, or both
+  }
+}
+
+parallel{
+  CUDA_selectdevice = 1
+  CUDA_threadblocksize = 64
+  CUDA_memorysaving = false
+  CUDA_RNGonCPU = false
+
+  OpenMP_nthreads = 1
+}
