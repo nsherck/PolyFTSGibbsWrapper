@@ -35,7 +35,7 @@ class Gibbs_System():
                 ChargedPairs: specify N-1 pairs if have N charged species
                 Pair that is made up of cation (+) with valency z+ and anion (-) with valency z- has the formula:
                     z+ (-) + z- (-)
-                A pair is made up of exactly two oppositely charged species
+                A pair is made up of exactly two charged species
                 A charged species involves in no more than two pairs
                     
                 
