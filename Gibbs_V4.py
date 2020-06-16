@@ -220,7 +220,7 @@ class Gibbs_System():
                     Cpairs[PairId[0]] = Cpair        
         # calculate concentration of pairs consisting of 2 species in more than one pair, assume no species involve in more than 2 pairs
         for  i,ii in enumerate(self.ChargedSpecies):
-            for k,indx in enumerate(PairIds[j]):
+            for k,indx in enumerate(PairIds[i]):
                 if Cpairs[indx] == 0.: 
                     otherPairIds = np.array(PairIds[i])[np.where(np.array(PairIds[i]) != indx)[0]]
                     otherCpairs = Cpairs[otherPairIds]
