@@ -154,7 +154,7 @@ class Gibbs_System():
         '''Check for electroneutrality'''
         for Box in [1,2]:
             q = self.GetTotalCharge(Box)
-            self.Write2Log('\nTotal charge in box {}: {}'.format(Box,q))
+            self.Write2Log('Total charge in box {}: {}\n'.format(Box,q))
     
     def CheckTotalSpeciesC(self, ConcTol = 0.01):
         for i in range(self.Nspecies):
@@ -830,12 +830,14 @@ class Gibbs_System():
                 self.UpdateMuPair()
                 self.CheckTotalCharge()
                 self.CheckTotalSpeciesC()
+                DtC_tmp = []
                 if self.UseAdaptiveDtC:
                     self.UpdateChargedDtC()
 
                 if self.Barostat != True:
                     for indx, var in enumerate(self.ValuesCurrent[::2]):                     
                         if indx == 0: # volume fraction
+                            self.Write2Log('Volume fraction time step: {}\n'.format(self.Dt[0]))
                             if self.Ensemble == 'NVT':
                                 self.ValuesCurrent[indx*2] = var + self.Dt[indx]*self.DvalsCurrent[indx+1]
                                 if self.ValuesCurrent[indx*2] < self.VolFracBounds[0]:
@@ -856,14 +858,14 @@ class Gibbs_System():
                                 if self.ValuesCurrent[indx*2] > self.VolFracBounds[1]:
                                     self.ValuesCurrent[indx*2] = 0.90
                                 self.ValuesCurrent[indx*2+1] = 1.-self.ValuesCurrent[indx*2] # update phase II
-                    #update species                               
-                        else:
+                        else:  #update species
                             # update neutral species first   
                             if indx - 1 in self.NeutralSpecies: 
                                 if self.UseAdaptiveDtC:  
                                     Dt_tmp = self.Dt[indx]
                                 else:
                                     Dt_tmp = np.minimum(var,self.ValuesCurrent[indx*2+1])* self.Dt[indx]
+                                DtC_tmp.append(Dt_tmp)
                                 self.ValuesCurrent[indx*2] = var - self.Dt[indx] * self.DvalsCurrent[indx+1] 
                                 if self.ValuesCurrent[indx*2]  < 0.:
                                     self.Write2Log('Value for operator {} < 0; iterating...\n'.format(indx))
@@ -880,6 +882,7 @@ class Gibbs_System():
                             Dt_tmp = self.DtCpair[indx]
                         else:
                             Dt_tmp = np.min([Cpair1,Cpair2]) * self.DtCpair[indx]
+                        DtC_tmp.append(Dt_tmp)
                         dMuPair = self.MuPair1[indx] - self.MuPair2[indx]
                         Cpair1 = Cpair1 - Dt_tmp * dMuPair
                         self.Cpair1[indx] = Cpair1
@@ -900,7 +903,13 @@ class Gibbs_System():
                         Ci = self.SpeciesCTotal[i]
                         f1 = self.ValuesCurrent[0]
                         self.ValuesCurrent[(i+1)*2+1] = (Ci - Ci1 * f1)/(1. - f1)
-                                                                                                                                                
+                                              
+                    # update time step for volume fraction
+                    Dtv = np.abs(np.min(DtC_tmp))/10.
+                    Dt_new = np.array(self.Dt)
+                    Dt_new[0] = Dtv
+                    self.SetDt(Dt_new)
+                                                                                                 
         if self.UseReRun != True: # just to ensure if not using rerun, set self.ReRun = False.
             self.ReRun = False
             self.ReRunHist.append(False)
