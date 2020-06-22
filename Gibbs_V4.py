@@ -109,6 +109,7 @@ class Gibbs_System():
         self.dMuPair            = []
         self.DtCpair            = [] # time step to update pair concentration
 
+        self.DtCtoDtv           = 10. # ratio of concentration time step to volume fraction time step
         self.DtCMax             = None # maximum Dt to update the concentration
         self.UseAdaptiveDtC     = False
         self.SetLogFile(self.LogFileName) # initialize LogFile
@@ -905,7 +906,7 @@ class Gibbs_System():
                         self.ValuesCurrent[(i+1)*2+1] = (Ci - Ci1 * f1)/(1. - f1)
                                               
                     # update time step for volume fraction
-                    Dtv = np.abs(np.min(DtC_tmp))/10.
+                    Dtv = np.abs(np.min(DtC_tmp))/self.DtCtoDtv
                     Dt_new = np.array(self.Dt)
                     Dt_new[0] = Dtv
                     self.SetDt(Dt_new)
