@@ -906,6 +906,11 @@ class Gibbs_System():
                         self.ValuesCurrent[(i+1)*2+1] = (Ci - Ci1 * f1)/(1. - f1)
                                               
                     # update time step for volume fraction
+                    DtC_tmp = []
+                    for i,Cpair1 in enumerate(self.Cpair1):
+                        DtC_tmp.append(np.min([Cpair1,self.Cpair2[i]]) * self.DtCpair[i])
+                    for i in self.NeutralSpecies:
+                        DtC_tmp.append(np.min([self.ValuesCurrent[(i+1)*2],self.ValuesCurrent[(i+1)*2+1]]) * self.Dt[i+1])
                     Dtv = np.abs(np.min(DtC_tmp))/self.DtCtoDtv
                     Dt_new = np.array(self.Dt)
                     Dt_new[0] = Dtv
