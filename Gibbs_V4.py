@@ -168,8 +168,9 @@ class Gibbs_System():
         ''' Get the combined chemical potential of a charged pair'''
         i1,i2 = Pair
         z1, z2 = [self.Valencies[i1],self.Valencies[i2]]
-        Mu = z2 * Mu1 + z1 * Mu2
-        MuErr = np.sqrt((z2*Mu1Err)**2 + (z1*Mu2Err)**2)
+        N1, N2 = [self.SpeciesDOP[i1],self.SpeciesDOP[i2]]
+        Mu = z2 * Mu1/N1 + z1 * Mu2/N2
+        MuErr = np.sqrt((z2*Mu1Err/N1)**2 + (z1*Mu2Err/N2)**2)
         return Mu, MuErr
     
     def UpdateMuPair(self):
