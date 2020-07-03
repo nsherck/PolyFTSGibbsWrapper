@@ -782,9 +782,9 @@ class Gibbs_System():
                                 self.ValuesCurrent[indx*2] = var + self.Dt[indx]*self.DvalsCurrent[indx+1]
                                 
                                 if self.ValuesCurrent[indx*2] < self.VolFracBounds[0]:
-                                    self.ValuesCurrent[indx*2] = 0.10
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[0] #0.10
                                 if self.ValuesCurrent[indx*2] > self.VolFracBounds[1]:
-                                    self.ValuesCurrent[indx*2] = 0.90
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[1] #0.90
                                 self.ValuesCurrent[indx*2+1] = 1.-self.ValuesCurrent[indx*2] # update phase II
                             elif self.Ensemble == 'NPT':
                                 CTot_new = self.CTotal - self.Dt[0]*dUdP # if P-Ptarget > 0, lower CTot, else increase
@@ -795,9 +795,9 @@ class Gibbs_System():
                                 self.ValuesCurrent[indx*2] = var + self.Dt[indx]*self.DvalsCurrent[indx+1]
                                 
                                 if self.ValuesCurrent[indx*2] < self.VolFracBounds[0]:
-                                    self.ValuesCurrent[indx*2] = 0.10
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[0] #0.10
                                 if self.ValuesCurrent[indx*2] > self.VolFracBounds[1]:
-                                    self.ValuesCurrent[indx*2] = 0.90
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[1] #0.90
                                 self.ValuesCurrent[indx*2+1] = 1.-self.ValuesCurrent[indx*2] # update phase II
                                 
                         
@@ -843,9 +843,9 @@ class Gibbs_System():
                             if self.Ensemble == 'NVT':
                                 self.ValuesCurrent[indx*2] = var + self.Dt[indx]*self.DvalsCurrent[indx+1]
                                 if self.ValuesCurrent[indx*2] < self.VolFracBounds[0]:
-                                    self.ValuesCurrent[indx*2] = 0.10
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[0] # 0.10
                                 if self.ValuesCurrent[indx*2] > self.VolFracBounds[1]:
-                                    self.ValuesCurrent[indx*2] = 0.90
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[1] # 0.90
                                 self.ValuesCurrent[indx*2+1] = 1.-self.ValuesCurrent[indx*2] # update phase II
                             elif self.Ensemble == 'NPT':
                                 CTot_new = self.CTotal - self.Dt[0]*dUdP # if P-Ptarget > 0, lower CTot, else increase
@@ -856,9 +856,9 @@ class Gibbs_System():
                                 self.ValuesCurrent[indx*2] = var + self.Dt[indx]*self.DvalsCurrent[indx+1]
                                 
                                 if self.ValuesCurrent[indx*2] < self.VolFracBounds[0]:
-                                    self.ValuesCurrent[indx*2] = 0.10
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[0] # 0.10
                                 if self.ValuesCurrent[indx*2] > self.VolFracBounds[1]:
-                                    self.ValuesCurrent[indx*2] = 0.90
+                                    self.ValuesCurrent[indx*2] = self.VolFracBounds[1] # 0.90
                                 self.ValuesCurrent[indx*2+1] = 1.-self.ValuesCurrent[indx*2] # update phase II
                         else:  #update species
                             # update neutral species first   
