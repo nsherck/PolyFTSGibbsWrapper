@@ -34,6 +34,7 @@ class Gibbs_System():
 		
 		self.Program 			= _Program
 		self.Nspecies   		= _Nspecies
+		self.PhaseBoundary      = 'binodal' # default
 		self.SpeciesMoleFrac	= []
 		self.CTotal				= float(1.)
 		self.Ensemble			= 'NVT' # whether to run Gibbs in NVT, NPT, etc.
@@ -67,7 +68,7 @@ class Gibbs_System():
 		self.NPolyFTSBlocksmax  = 10000
 		self.OperatorRelTol		= 0.005
 		self.UseOneNode			= False
-		self.PolyFTSExec	 	= '~/PolyFTS_2020.06.02/PolyFTS_2020.06.19_HotFixDGC/bin/Release/PolyFTS.x'
+		self.PolyFTSExec	 	= '~/PolyFTS_2020.02.24/bin/Release/PolyFTS.x'
 		self.VolFracBounds 		= [0.1,0.9] # lower,upper
 		self.StepRunTime 		= -1. # amount of time to run simulations
 		self.PSInteraction		= -999
@@ -77,6 +78,9 @@ class Gibbs_System():
 		self.LogFileName		= 'Gibbs.log'
 		self.LogFile			= None
 		self.Break				= False
+		self.EigenValues		= [] # spinodal eigenvalues
+		self.MinEigVal			= 0. # minimum spinodal eigenvalue
+		self.FindEigenValuesNumerically    = False # have linalg find the eigenvalues of the stability matrix, set True
 		
 		self.SetLogFile(self.LogFileName) # initialize LogFile
 	
@@ -105,6 +109,11 @@ class Gibbs_System():
 		
 		'''
 		self.JobType = str(_JobType)
+
+	def SetPhaseBoundary(self,_PhaseBoundary):
+		''' if calculating binodal or spinodal, only applicable for 2 species @ MF'''
+		
+		self.PhaseBoundary = str(_PhaseBoundary)
 		
 	def SetEnsemble(self,_Ensemble):
 		''' The Ensemble to Use.
@@ -286,6 +295,51 @@ class Gibbs_System():
 			MuB = MuB+muSex
 		
 		return P,MuA,MuB
+		
+	def MFSpinodal(self,rho_A,rho_B,N_A,N_B,Int,a_list):
+		''' MF Spinodal for a two species Model (No Charges). '''
+		dNadNa = (Int[0]*N_A+1./rho_A)*N_A
+		dNadNb = Int[2]*N_A*N_B
+		dNbdNb = (Int[1]*N_B+1./rho_B)*N_B
+		
+		PhiMatrix = [[dNadNa, dNadNb],
+					 [dNadNb, dNbdNb]]
+		
+		return PhiMatrix
+		
+	def FindEigenValues(self,_M):
+		''' Find the eigenvalues of MF Spinodal Matrix (_M) for a two species Model (No Charges). '''
+		import scipy.linalg as la
+		
+		_eigvals, _eigvects = la.eig(_M)
+		
+		return [_eigvals, _eigvects]
+		
+	def MFStabilityEigenValues(self,rho_A,rho_B,N_A,N_B,Int,a_list):
+		''' MF Eigenvalues of Stability matrix for a two species Model (No Charges). 
+			Returns the eigenvalues.
+		'''
+		dNadNa = (Int[0]*N_A+1./rho_A)*N_A
+		dNadNb = Int[2]*N_A*N_B
+		dNbdNb = (Int[1]*N_B+1./rho_B)*N_B
+		
+		lambda1 = 0.5*(dNadNa + dNbdNb + np.sqrt((dNadNa + dNbdNb)**2 - 4.*(dNadNa*dNbdNb-dNadNb**2))) # plus
+		lambda2 = 0.5*(dNadNa + dNbdNb - np.sqrt((dNadNa + dNbdNb)**2 - 4.*(dNadNa*dNbdNb-dNadNb**2))) # minus
+		
+		return [lambda1,lambda2]
+
+	def MinimizeEigenValue(self,_x,_indexes,_LambdaIndex,rho_A,rho_B,N_A,N_B,Int,a_list):
+		''' Minimize the Eigenvalue (No Charges). 
+			_x = the interaction PS parameter used to minimize
+			_LambdaIndex = the lambda value that changed signs
+		'''
+		
+		for _i,_index in enumerate(_indexes):
+			Int[_index] = _x[_i] 		
+		
+		_lambdaX = np.abs(self.MFStabilityEigenValues(rho_A,rho_B,N_A,N_B,Int,a_list)[_LambdaIndex])
+		
+		return _lambdaX
 
 	def GenerateRunDirectory(self):
 		''' Generates the new run directories. '''
@@ -322,10 +376,10 @@ class Gibbs_System():
 				ini=re.sub('__NUMBLOCKS__',str(self.NPolyFTSBlocks),ini)
 			elif self.Iteration < 1:
 				ini=re.sub('__READFIELDS__','No',ini)
-				ini=re.sub('__NUMBLOCKS__','1000',ini)
+				ini=re.sub('__NUMBLOCKS__','4000',ini)
 			else:
 				ini=re.sub('__READFIELDS__','No',ini)
-				ini=re.sub('__NUMBLOCKS__','1000',ini)
+				ini=re.sub('__NUMBLOCKS__','4000',ini)
 			
 			ini = re.sub('__PS__',str(self.PSInteraction),ini)
 			
@@ -482,7 +536,7 @@ class Gibbs_System():
 				self.ReRun = False
 				pass
 		
-		if self.Barostat != True and self.JobType == 'CL' and max_relative_error > 0.09:
+		if self.JobType == 'CL' and max_relative_error > 0.09 and not self.Barostat:
 			self.Break = True
 			self.Write2Log('Breaking out of Gibbs!\n')
 		
@@ -579,7 +633,7 @@ class Gibbs_System():
 		if self.Converged == False:
 
 			# update the parameters, check if boxes switched; i.e. concentrated box became dilute box and vice-versa
-			if self.Program == 'polyFTS' and self.JobType != 'MF' and self.Barostat != True:
+			if self.Program == 'polyFTS' and self.JobType != 'MF' and self.Barostat != True and self.PhaseBoundary == 'binodal':
 				JobID_List = []
 				RunPaths = []
 				p_status_list = []
@@ -632,7 +686,7 @@ class Gibbs_System():
 				self.WriteStats()
 
 					
-			elif self.Program == 'polyFTS' and self.JobType == 'MF' and self.Barostat != True:
+			elif self.Program == 'polyFTS' and self.JobType == 'MF' and self.Barostat != True and self.PhaseBoundary == 'binodal':
 				# run a analytical mean-field model
 				
 					if self.Iteration == 1:
@@ -669,7 +723,7 @@ class Gibbs_System():
 					self.Iteration += 1
 					self.WriteStats()
 			
-			elif self.Program == 'polyFTS' and self.JobType != 'MF' and self.Barostat == True:
+			elif self.Program == 'polyFTS' and self.JobType != 'MF' and self.Barostat == True and self.PhaseBoundary == 'binodal':
 				# using a barostat
 				JobID_List = []
 				RunPaths = []
@@ -709,3 +763,56 @@ class Gibbs_System():
 				self.UpdateParameters(Operator_List)
 				self.Iteration += 1
 				self.WriteStats()		
+				
+			elif self.Program == 'polyFTS' and self.JobType == 'MF' and self.Ensemble == 'NVT' and self.PhaseBoundary == 'spinodal':
+				''' Find the spinodal of a two species system. 
+					
+					- Approach:
+						(1) at a fixed concentration or number density come up in temperature until min(EigVal) <= 0.
+						(2) or, specify number densities and iterate over temperature until min(EigVal) <= 0.
+				
+				
+				'''
+				
+				if self.Iteration == 1:
+					self.ValuesCurrent = self.VarsInit
+					self.WriteStats() # values for this step	
+			
+				out = self.GetPolyFTSParameters() # convert to polyFTS parameters
+				VarModel1 = out[0]
+				VarModel2 = out[1]
+				
+				Int = self.Interactions # uPP,uSS,uPS
+				a_list = self.InteractionRange # aPP,aSS,aPS
+				rho1_A = VarModel1[0]*VarModel1[1]
+				rho1_B = VarModel1[0]*VarModel1[2]
+				rho2_A = rho1_A
+				rho2_B = rho1_B
+				
+				#print('rhoA {}'.format(rho1_A))
+				#print('rhoB {}'.format(rho1_B))
+				if self.FindEigenValuesNumerically:
+					_M = self.MFSpinodal(rho1_A,rho1_B,self.SpeciesDOP[0],self.SpeciesDOP[1],Int,a_list)
+					Vals = self.FindEigenValues(_M)
+					self.EigenValues = Vals[0].real
+					self.MinEigVal   = np.min(Vals[0].real)
+				else:
+					Vals = self.MFStabilityEigenValues(rho1_A,rho1_B,self.SpeciesDOP[0],self.SpeciesDOP[1],Int,a_list)
+					self.EigenValues = Vals
+					self.MinEigVal   = np.min(Vals)
+
+				# Data Analysis:
+				#model 1
+				model1 = self.SCFTModel(rho1_A,rho1_B,self.SpeciesDOP[0],self.SpeciesDOP[1],Int,a_list,self.UseRPA)
+				P1 = model1[0]
+				mu1_A = model1[1]
+				mu1_B = model1[2]
+				
+				P2 = P1
+				mu2_A = mu1_A
+				mu2_B = mu1_B
+				
+				Operator_List = [[[0.,0.],[P1,0.],[mu1_A,0.],[mu1_B,0.]],[[0.,0.],[P2,0.],[mu2_A,0.],[mu2_B,0.]]]					
+				self.UpdateParameters(Operator_List)
+				self.Iteration += 1
+				self.WriteStats()
