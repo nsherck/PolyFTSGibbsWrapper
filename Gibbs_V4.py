@@ -67,7 +67,7 @@ class Gibbs_System():
 		self.NPolyFTSBlocksmax  = 10000
 		self.OperatorRelTol		= 0.005
 		self.UseOneNode			= False
-		self.PolyFTSExec	 	= '~/PolyFTS_2020.02.24/bin/Release/PolyFTS.x'
+		self.PolyFTSExec	 	= '~/PolyFTS_2020.06.02/PolyFTS_2020.06.19_HotFixDGC/bin/Release/PolyFTS.x'
 		self.VolFracBounds 		= [0.1,0.9] # lower,upper
 		self.StepRunTime 		= -1. # amount of time to run simulations
 		self.PSInteraction		= -999
@@ -322,10 +322,10 @@ class Gibbs_System():
 				ini=re.sub('__NUMBLOCKS__',str(self.NPolyFTSBlocks),ini)
 			elif self.Iteration < 1:
 				ini=re.sub('__READFIELDS__','No',ini)
-				ini=re.sub('__NUMBLOCKS__','4000',ini)
+				ini=re.sub('__NUMBLOCKS__','1000',ini)
 			else:
 				ini=re.sub('__READFIELDS__','No',ini)
-				ini=re.sub('__NUMBLOCKS__','4000',ini)
+				ini=re.sub('__NUMBLOCKS__','1000',ini)
 			
 			ini = re.sub('__PS__',str(self.PSInteraction),ini)
 			
@@ -482,7 +482,7 @@ class Gibbs_System():
 				self.ReRun = False
 				pass
 		
-		if self.JobType == 'CL' and max_relative_error > 0.09 and not self.Barostat:
+		if self.Barostat != True and self.JobType == 'CL' and max_relative_error > 0.09:
 			self.Break = True
 			self.Write2Log('Breaking out of Gibbs!\n')
 		

@@ -15,7 +15,7 @@ import Gibbs_V4 as Gibbs_Module
 program = 'polyFTS' # or 'MD'
 jobtype = 'CL' # CL,SCFT,MF
 barostat = True # whether to apply a barostat to a system
-number_species = 2
+number_species = 1
 GM = Gibbs_Module.Gibbs_System(program,number_species)
 GM.SetJobType(jobtype)
 GM.SetRunTemplate('template.in',['__CTOT__','__Phi1__','__Phi2__'])
@@ -35,8 +35,8 @@ GM.SetInteractionRange([2.708173622,2.253219669,2.491178966])
 GM.SetUseRPA(False) #RPA unstable inside spinodal, default to false
 
 ''' Set total species number and total volume. '''
-CTot = 0.068911851 # number concentration
-NumberFrac_Species = [1.0,0.]
+CTot = 0.04 # number concentration
+NumberFrac_Species = [1.0]#,0.]
 NumberDens_Species = [CTot*x for x in NumberFrac_Species]
 
 GM.SetSpeciesCTotal(NumberDens_Species)
@@ -44,17 +44,17 @@ GM.SetSpeciesDOP([10,1]) # the degree of polymerization, topology doesn't matter
 
 ''' Set the initial guesses for the coexistence pts of BoxI. '''
 # auto-converts internally to either polyFTS or MD suitable parameters
-fI  = 0.9
-CI1 = 0.9*CTot
-CI2 = 0.1*CTot
+fI  = 1.
+CI1 = 1.0*CTot
+#CI2 = 0.1*CTot
 # calculate BoxII pts
-fII = 1.-fI
-CII1 = (NumberDens_Species[0]-CI1*fI)/fII
-CII2 = (NumberDens_Species[1]-CI2*fI)/fII
+#fII = 1.-fI
+#CII1 = (NumberDens_Species[0]-CI1*fI)/fII
+#CII2 = (NumberDens_Species[1]-CI2*fI)/fII
 
-VarInit = [fI,fII,CI1,CII1,CI2,CII2]
+#VarInit = [fI,fII,CI1,CII1,CI2,CII2]
 if barostat:
-	VarInit = [1.,CI1,CI2]
+	VarInit = [1.,CI1]#,CI2]
 
 GM.SetInitialGuess(VarInit)
 
@@ -85,15 +85,15 @@ if jobtype == "CL" and not barostat:
 	MFMaxIter	= 1e6
 	nsteps 		= 20000 # Number CL steps to run for
 	prefac 		= 1000./1.384688**3 # conversion to monomers/nm**3
-	N 			= 10 # length of the polymer chain
-	Temp 		= 180.0 # temperature to run at
+	N 			= 6 # length of the polymer chain
+	Temp 		= 25.0 # temperature to run at
 	_uPS 		= uPS(Temp)
 	
 	GM.SetSpeciesDOP([N,1])
 	GM.SetInteractions([380.1713095,50.95952805,_uPS])
 	GM.SetUseOneNode(True)
-	GM.SetNPolyFTSBlocks(100)
-	GM.SetNPolyFTSBlocksMin(100)
+	GM.SetNPolyFTSBlocks(200)
+	GM.SetNPolyFTSBlocksMin(200)
 	GM.SetNPolyFTSBlocksMax(200)
 	GM.SetOperatorRelTol(0.001)
 	GM.SetVolFracBounds([0.1,0.9])	
@@ -158,16 +158,16 @@ if jobtype == "CL" and barostat:
 	MFMaxIter	= 1e6
 	nsteps 		= 20000 # Number CL steps to run for
 	prefac 		= 1000./1.384688**3 # conversion to monomers/nm**3
-	N 			= 6 # length of the polymer chain
+	N 			= 20 # length of the polymer chain
 	Temp 		= 100.0 # temperature to run at
 	_uPS 		= uPS(Temp)
 	
 	GM.SetSpeciesDOP([N,1])
 	GM.SetInteractions([380.1713095,50.95952805,_uPS])
 	GM.SetUseOneNode(True)
-	GM.SetNPolyFTSBlocks(400)
-	GM.SetNPolyFTSBlocksMin(400)
-	GM.SetNPolyFTSBlocksMax(2500)
+	GM.SetNPolyFTSBlocks(100)
+	GM.SetNPolyFTSBlocksMin(100)
+	GM.SetNPolyFTSBlocksMax(100)
 	GM.SetOperatorRelTol(0.001)
 	GM.SetVolFracBounds([0.01,1.02])	
 	GM.PSInteraction = _uPS
@@ -193,6 +193,6 @@ if jobtype == "CL" and barostat:
 		print("Step: {0} RunTime: {1:3.3e} min.".format(step,GM.StepRunTime))
 	
 		Fvals = GM.ValuesCurrent
-		
-		Coexpts.write('{} {} {} {} {} \n'.format(Temp,_uPS,Fvals[1],Fvals[2],Fvals[1]+Fvals[2]))
+		print(Fvals)
+		Coexpts.write('{} {} {} \n'.format(Temp,_uPS,Fvals[1]))
 		Coexpts.flush()	
